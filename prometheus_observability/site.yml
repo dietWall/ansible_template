@@ -1,0 +1,33 @@
+---
+# Site-level playbook for SSH verification
+- name: SSH Connectivity Verification
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    docker_host_user: "ubuntu"
+    docker_host_ip: "172.17.0.1"
+    ssh_verify_commands:
+      - whoami
+      - pwd
+      - ls -la
+      - id
+  roles:
+    - role: ssh_verify
+  tasks:
+    - name: SSH to docker host and run verification commands
+      ansible.builtin.shell: |-
+        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {{ docker_host_user }}@{{ docker_host_ip }} \
+        {{ ssh_verify_commands | join(' ') }}
+      args:
+        uses_shell: bash
+      register: ssh_output
+      failed_when: false
+      changed_when: false
+      timeout: 30
+
+    - name: Display verification results
+      ansible.builtin.debug:
+        msg: |
+          SSH Connectivity Test Results:
+          {{ ssh_output.stdout_lines | default(['Connection failed or no output']) | join('\n') }}

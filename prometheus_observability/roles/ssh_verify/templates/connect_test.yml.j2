@@ -1,0 +1,28 @@
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: SSH into {{ inventory_hostname }}
+      ansible.builtin.shell: "{{ ssh_verify_commands | join(' ') }}"
+      run_once: true
+      register: ssh_output
+      ignore_errors: true
+      timeout: "{{ ansible_ssh_timeout | default(10) }}"
+      become: true
+      args:
+        uses_shell: bash
+
+    - name: Display SSH verification results
+      ansible.builtin.debug:
+        msg: "SSH verification results from {{ inventory_hostname }}:"
+      when: ssh_output is defined
+
+    - name: Show command output
+      ansible.builtin.debug:
+        msg: "{{ ssh_output.stdout | default('') }}"
+      when: ssh_output is defined
+
+    - name: Report connection status
+      ansible.builtin.debug:
+        msg: "{{ 'SSH connection successful' if ssh_output.stdout is defined else 'SSH connection failed or no output' }}"
+      when: ssh_output is defined

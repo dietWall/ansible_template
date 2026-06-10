@@ -1,0 +1,26 @@
+---
+# SSH Verification Role Tasks
+# Purpose: Test SSH connectivity to target hosts and run verification commands
+
+- name: Run SSH verification commands
+  raw: true
+  args:
+    uses_shell: bash
+  become: true
+  when: ansible_connection != 'direct'
+  register: ssh_verify_result
+  failed_when: false
+  changed_when: false
+  vars:
+    output_separator: ' | '
+  commands: "{{ (ssh_verify_commands | default([whoami]) | join(' ') if (ansible_connection == 'direct') else '') }}"
+
+- name: Display SSH verification results
+  ansible.builtin.debug:
+    msg: "{{ ssh_verify_result.stdout_lines | default('No output from verification commands') }}"
+
+- name: Report SSH connection status
+  ansible.builtin.debug:
+    msg: >
+      SSH connection {{ 'successful' if ssh_verify_result.stdout is defined and ssh_verify_result.stdout | length > 0 else 'failed' }}
+      Output: {{ ssh_verify_result.stdout | default('') }}

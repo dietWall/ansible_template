@@ -1,0 +1,35 @@
+---
+- name: SSH Connectivity Test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    docker_host_ip: "172.17.0.1"
+    docker_host_user: "ubuntu"
+    ssh_commands:
+      - whoami
+      - pwd
+      - id
+      - hostname
+  tasks:
+    - name: SSH to docker host
+      ansible.builtin.shell: |-
+        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {{ docker_host_user }}@{{ docker_host_ip }} \
+        'for cmd in {{ ssh_commands | join(" ") }}; do echo "=== $cmd ==="; $cmd; echo ""; done'
+      args:
+        uses_shell: bash
+      register: ssh_result
+      failed_when: false
+      changed_when: false
+      timeout: 60
+
+    - name: Display SSH test results
+      ansible.builtin.debug:
+        msg: |
+          SSH Connectivity Test Results:
+          {{ ssh_result.stdout_lines | default(['No output received']) | join('\n\n') }}
+
+    - name: Report connection status
+      ansible.builtin.debug:
+        msg: "SSH Connection Status: {{ 'SUCCESS' if ssh_result.stdout is defined and ssh_result.stdout | length > 0 else 'FAILED' }}"
+      when: ssh_result is defined

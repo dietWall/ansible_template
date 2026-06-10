@@ -1,0 +1,9 @@
+roles:
+  # Stabile Version für Docker-Infrastruktur auf dem Host (z.B. Ubuntu/Debian)
+  - name: geerlingguy.docker
+    version: "8.0.0"
+
+collections:
+  # Notwendig, damit das Molecule-Plugin die Test-Container verwalten darf
+  - name: community.docker
+    version: ">=3.10.0,<4.0.0"

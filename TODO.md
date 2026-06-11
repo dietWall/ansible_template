@@ -11,6 +11,9 @@
 - [x] Create SSH verification role (ssh_verify)
 - [x] Configure Molecule test environment
 - [x] Create simplified converge.yml (no roles)
+- [x] Create README.md with goals and setup commands
+- [x] Create molecule_test.sh wrapper script
+- [x] Fix molecule-docker compatibility issue
 
 ## 🟢 Ready for Testing
 

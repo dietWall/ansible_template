@@ -14,18 +14,28 @@ This project establishes a foundational SSH infrastructure for testing and valid
 
 ### Quick Verification with Demo Role
 
-Run `molecule converge` to see the demo role output - perfect for verifying Ansible is working:
+The **demo role** provides immediate feedback to verify Ansible is working correctly without requiring SSH connectivity.
 
+**Run:**
+```bash
+cd prometheus_observability
+DEMO_DETAILED=false molecule converge
 ```
-TASK [demo : Display demo title] ******
-ok: [localhost] => {
-    "msg": "Ansible Foundation Demo"
-}
-TASK [demo : Display demo status] ******
-ok: [localhost] => {
-    "msg": "Ready"
-}
+
+**Output includes:**
+- Demo title and status messages
+- Ansible version and connection type
+- System facts (OS, distribution, architecture)
+- Available Ansible facts (70+)
+- Command output examples (whoami, time, etc.)
+- Conditional task demonstrations
+
+**Verbose mode:**
+```bash
+DEMO_DETAILED=true molecule converge
 ```
+
+See [`roles/demo/`](roles/demo/) for demo role configuration.
 
 ### 1. Prerequisites
 

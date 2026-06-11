@@ -13,6 +13,11 @@ platforms:
     pre_build_image: true
 provisioner:
   name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "$MOLECULE_EPHEMERAL_DIRECTORY/roles:$MOLECULE_PROJECT_DIRECTORY/roles:../../roles"
+    ANSIBLE_CALLBACK_RESULT_FORMAT: "yaml"
+    ANSIBLE_DISPLAY_FAILED_STDERR: "true"
+    demo_detailed: "{{ lookup('env', 'DEMO_DETAILED') | default('false', true) }}"
   config:
     timeout: 120
     inventory:
@@ -28,5 +33,10 @@ provisioner:
           ansible_user: ubuntu
           ansible_become: true
           ansible_become_method: sudo
+  
+  ansible_args:
+    - --extra-vars
+    - "demo_detailed_raw={{ lookup('env', 'DEMO_DETAILED') | default('false', true) }}"
+
 verifier:
   name: ansible

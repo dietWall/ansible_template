@@ -11,6 +11,15 @@
       - pwd
       - id
       - hostname
+    demo_detailed: "{{ demo_detailed_raw | default('false') | bool }}"
+  pre_tasks:
+    - name: "print internals"
+      ansible.builtin.debug:
+        msg: 
+          - "Print demo_detailed {{ demo_detailed | default('UNDEFINED') }}"
+          - "Typ der Variable: {{ demo_detailed | type_debug }}"
+  roles:
+    - role: demo
   tasks:
     - name: SSH to docker host
       ansible.builtin.shell: |-
@@ -27,7 +36,9 @@
       ansible.builtin.debug:
         msg: |
           SSH Connectivity Test Results:
-          {{ ssh_result.stdout_lines | default(['No output received']) | join('\n\n') }}
+          {% for line in ssh_result.stdout_lines | default(['No output received']) %}
+          {{ line }}
+          {% endfor %}
 
     - name: Report connection status
       ansible.builtin.debug:

@@ -15,6 +15,12 @@
     output_separator: ' | '
   commands: "{{ (ssh_verify_commands | default([whoami]) | join(' ') if (ansible_connection == 'direct') else '') }}"
 
+- name: Fail on purpose to check error output in ansible
+  ansible.builtin.fail:
+    msg: |
+      "Intentional failure to test error output line 1"
+      "Intentional failure to test error output line 2"
+
 - name: Display SSH verification results
   ansible.builtin.debug:
     msg: "{{ ssh_verify_result.stdout_lines | default('No output from verification commands') }}"

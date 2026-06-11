@@ -10,10 +10,12 @@
 - [x] Define central variables in group_vars/all.yml
 - [x] Create SSH verification role (ssh_verify)
 - [x] Configure Molecule test environment
+- [x] Create demo role for quick verification
 - [x] Create simplified converge.yml (no roles)
 - [x] Create README.md with goals and setup commands
 - [x] Create molecule_test.sh wrapper script
 - [x] Fix molecule-docker compatibility issue
+- [x] Create ansible.cfg for logging configuration
 
 ## 🟢 Ready for Testing
 
@@ -34,9 +36,20 @@ molecule test
 - Ready to validate SSH connectivity to `ubuntu@172.17.0.1`
 
 ## 🔄 Next Steps
-1. Run `molecule test` to validate SSH connectivity
-2. Once SSH works, add back the ssh_verify role
-3. Test with actual Molecule containers
+1. Run `molecule converge` to verify demo role works
+2. Run `molecule test` to validate SSH connectivity
+3. Once SSH works, add back the ssh_verify role
+4. Test with actual Molecule containers
+
+---
+
+## 🧪 Quick Test
+
+```bash
+# Run demo role to verify Ansible is working
+cd prometheus_observability
+../molecule_test.sh converge
+```
 
 ---
 

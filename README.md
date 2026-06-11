@@ -10,7 +10,22 @@ This project establishes a foundational SSH infrastructure for testing and valid
 - Create a reusable framework for SSH management
 - Foundation for future Docker, Prometheus, and service integrations
 
-## 🚀 Quick Start
+## ✨ Features
+
+### Quick Verification with Demo Role
+
+Run `molecule converge` to see the demo role output - perfect for verifying Ansible is working:
+
+```
+TASK [demo : Display demo title] ******
+ok: [localhost] => {
+    "msg": "Ansible Foundation Demo"
+}
+TASK [demo : Display demo status] ******
+ok: [localhost] => {
+    "msg": "Ready"
+}
+```
 
 ### 1. Prerequisites
 
@@ -71,9 +86,17 @@ prometheus_observability/
 │       ├── molecule.yml      # Molecule configuration
 │       └── converge.yml      # Converge playbook
 ├── roles/
-│   └── ssh_verify/           # SSH verification role
+│   ├── demo/                 # Demo role for quick verification
+│   │   ├── tasks/main.yml
+│   │   ├── defaults/main.yml
+│   │   ├── vars/main.yml
+│   │   └── handlers/main.yml
+│   ├── ssh_verify/           # SSH verification role
+│   │   ├── tasks/main.yml
+│   │   └── templates/
+│   └── ssh_keys/            # SSH key management role
 │       ├── tasks/main.yml
-│       └── templates/
+│       └── files/
 ├── group_vars/
 │   └── all.yml               # Shared variables
 └── site.yml                  # Site-level playbook

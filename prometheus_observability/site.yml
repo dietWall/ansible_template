@@ -30,4 +30,6 @@
       ansible.builtin.debug:
         msg: |
           SSH Connectivity Test Results:
-          {{ ssh_output.stdout_lines | default(['Connection failed or no output']) | join('\n') }}
+          {% for line in ssh_output.stdout_lines | default(['No output received']) %}
+          {{ line }}
+          {% endfor %}

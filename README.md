@@ -9,6 +9,7 @@ This project establishes a foundational SSH infrastructure for testing and valid
 - Verify authentication (SSH keys, sudo) works correctly
 - Create a reusable framework for SSH management
 - Foundation for future Docker, Prometheus, and service integrations
+- Support both localhost and Docker container test scenarios
 
 ## ✨ Features
 
@@ -64,11 +65,15 @@ ansible-galaxy install -r requirements.yml
 # Run on localhost (current setup)
 DEMO_DETAILED=false molecule converge --targets localhost
 
+# Run on Docker container (demo role in container)
+DEMO_DETAILED=false molecule converge --targets ubuntu
+
 # Run all tests
 molecule test
 
 # Run specific targets
 molecule test --targets localhost
+molecule test --targets ubuntu
 ```
 
 ### 4. Individual Commands
@@ -95,41 +100,27 @@ molecule destroy
 ```
 prometheus_observability/
 ├── molecule/
-│   └── default/
-│       ├── molecule.yml      # Molecule configuration
-│       └── converge.yml      # Converge playbook
+│   ├── default/
+│   │   ├── molecule.yml      # Molecule configuration (localhost only)
+│   │   └── converge.yml      # Converge playbook
+│   └── ubuntu/
+│       ├── molecule.yml      # Docker scenario configuration
+│       ├── converge.yml      # Converge playbook
+│       ├── create.yml        # Create sequence
+│       ├── destroy.yml       # Destroy sequence
+│       └── verify.yml        # Verify playbook
 ├── roles/
 │   ├── demo/                 # Demo role for quick verification
-│   │   ├── tasks/main.yml
-│   │   ├── defaults/main.yml
-│   │   ├── vars/main.yml
-│   │   └── handlers/main.yml
-│   ├── ssh_verify/           # SSH verification role
-│   │   ├── tasks/main.yml
-│   │   └── templates/
+│   ├── ssh_verify/          # SSH verification role
 │   └── ssh_keys/            # SSH key management role
-│       ├── tasks/main.yml
-│       └── files/
-├── group_vars/
-│   └── all.yml               # Shared variables
-└── site.yml                  # Site-level playbook
-```
-
-## 🔧 Configuration
-
-Edit `group_vars/all.yml` to customize:
-
-```yaml
-ssh_verify_commands:
-  - whoami
-  - pwd
-  - ls -la
-  - id
+├── group_vars/              # Shared variables
+└── site.yml                 # Site-level playbook
 ```
 
 ## 📝 Notes
 
 - **localhost target**: Run on your host machine for quick iteration and demo role testing
+- **ubuntu target**: Runs the demo role in a Docker container for full testing
 
 ## 🔍 What Gets Tested
 

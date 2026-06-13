@@ -1,0 +1,9 @@
+# global provisioner declaration 
+# overwritten by local yml files in molecule/[default|ubuntu]/molecule.yml
+# by using all or everything strategy, if this is redeclared with a subset, some there might be missing data
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "$MOLECULE_PROJECT_DIRECTORY/roles"
+    ANSIBLE_CALLBACK_RESULT_FORMAT: "yaml"
+    ANSIBLE_DISPLAY_FAILED_STDERR: "true"

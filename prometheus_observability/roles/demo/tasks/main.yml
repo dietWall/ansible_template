@@ -14,10 +14,6 @@
   ansible.builtin.debug:
     msg: "Connection type: {{ ansible_connection }}"
 
-- name: Show Python interpreter
-  ansible.builtin.debug:
-    msg: "Python interpreter: {{ ansible_python_interpreter }}"
-
 - name: Display demo status
   ansible.builtin.debug:
     msg: |
@@ -28,20 +24,19 @@
       run ansible localhost -m ansible.builtin.setup to see all available facts on the console
 
 - name: Collect Facts
+  # explicitely gather facts, will be skipped if done already globally
   ansible.builtin.setup:
 
-- name: Show system facts
+- name: Print all gathered facts - Runtime variables (local)
   ansible.builtin.debug:
-    msg:
-      - "Betriebssystem: {{ ansible_facts['os_family'] }}"
-      - "Distribution: {{ ansible_facts['distribution'] }}"
+    var: ansible_facts
+  when: demo_detailed
 
-- name: Show available fact names
+- name: Show some selected system facts ()
   ansible.builtin.debug:
-    # prints the dictionary in a readable format, each key in a new line
     msg:
-      - "Verfügbare System-Facts:"
-      - "{{ ansible_facts.keys() | sort }}"
+      - "OS-family: {{ ansible_facts['os_family'] }}"
+      - "Distribution: {{ ansible_facts['distribution'] }}"
 
 - name: We can skip tasks like this with "when statement"
   ansible.builtin.debug:
@@ -55,9 +50,9 @@
   when: demo_detailed
 
 - name: Run a command
-  # this is an interesting point: time is a shell built-in, the output is changed if we run it manually
-  # so to not confuse ourselves, we use -p, which shows exactly the same as in bash
-  # ansible does not use bash and runs actually /usr/bin/time whoami
+  # this is an interesting point: time is a shell built-in,
+  # but ansible uses the executable here /usr/bin/time
+  # with -p, the output is same as we run it manually
   ansible.builtin.command: time -p whoami
   register: demo_command_output
   changed_when: false
@@ -79,4 +74,3 @@
 - name: Output as JSON
   ansible.builtin.debug:
     msg: "{{ demo_command_output.stdout_lines | ansible.builtin.to_nice_json(indent=2) }}"
-

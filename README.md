@@ -62,10 +62,23 @@ ansible-galaxy install -r requirements.yml
 
 ### 3. Run Tests
 
+**Available Targets:**
+- `localhost` - Run on your host machine (faster, no Docker needed for tests)
+- `docker-ubuntu2204` - Run in isolated Docker container
+
 ```bash
-# Run molecule test
+# Run on localhost (current setup)
 cd prometheus_observability
-../molecule_test.sh test
+DEMO_DETAILED=false molecule converge --targets localhost
+
+# Run on Docker container
+molecule converge --targets docker-ubuntu2204
+
+# Run on all targets
+molecule test
+
+# Run specific targets
+molecule test --targets localhost docker-ubuntu2204
 ```
 
 ### 4. Individual Commands
@@ -128,14 +141,16 @@ ssh_verify_commands:
 
 ## 📝 Notes
 
+- **Multi-target setup**: `localhost` and `docker-ubuntu2204` targets in molecule.yml
+- **localhost target**: Best for quick iteration, demo role testing
+- **docker-ubuntu2204 target**: Isolated container environment for full testing
+- **Future**: Extend to staging environments (multi-host deployments)
 - **geerlingguy.docker** is a role, not a Galaxy collection - using `community.docker` instead
 - **molecule-docker** is deprecated; will migrate to `molecule-plugins[docker]` in future iteration
 - SSH connection tests run against Docker host (`172.17.0.1:ubuntu`)
 
 ## 🔍 What Gets Tested
 
-- SSH connectivity to target host
-- SSH authentication (key/password)
-- Sudo privileges
-- Verification commands execution
+- **localhost target**: Demo role, system facts, Ansible capabilities
+- **docker-ubuntu2204**: SSH connectivity, authentication, sudo, verification commands
 - Connection timeouts and errors

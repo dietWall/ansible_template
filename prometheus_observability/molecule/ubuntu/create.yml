@@ -1,0 +1,85 @@
+---
+- name: Create
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    test_user: "ansible_user"
+    test_pass: "MoleculeSecurePassword123"
+
+  tasks:
+    - name: Molecule-Plattformen validieren und auslesen
+      ansible.builtin.set_fact:
+        molecule_platforms: "{{ molecule_yml.platforms }}"
+
+    - name: Docker Container mit Systemd starten
+      community.docker.docker_container:
+        name: "{{ item.name }}"
+        image: "{{ item.image }}"
+        state: started
+        privileged: true
+        cgroupns_mode: host
+        command: /lib/systemd/systemd
+        detach: true
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+          - /var/run/docker.sock:/var/run/docker.sock:rw
+        tmpfs:
+          - /run
+          - /run/lock
+        published_ports:
+          - "0.0.0.0:2222:22" # Fester Port 2222
+        auto_remove: true
+      loop: "{{ molecule_platforms }}"
+      register: docker_jobs
+
+    - name: Befülle die server Variable für Molecule
+      ansible.builtin.set_fact:
+        server:
+          changed: "{{ docker_jobs.changed }}"
+          results: "{{ docker_jobs.results }}"
+
+    - name: Installiere OpenSSH-Server und Sudo im Container
+      community.docker.docker_container_exec:
+        container: "{{ item.name }}"
+        command: sh -c "apt-get update && apt-get install -y openssh-server sudo"
+      loop: "{{ molecule_platforms }}"
+
+    - name: Erstelle den Test-Benutzer und erlaube Sudo ohne Passwort
+      community.docker.docker_container_exec:
+        container: "{{ item.name }}"
+        command: sh -c "useradd -m -s /bin/bash {{ test_user }} && echo '{{ test_user }}:{{ test_pass }}' | chpasswd && echo '{{ test_user }} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/{{ test_user }}"
+      loop: "{{ molecule_platforms }}"
+
+    - name: Stelle sicher, dass der SSH-Dienst läuft
+      community.docker.docker_container_exec:
+        container: "{{ item.name }}"
+        command: sh -c "systemctl enable --now ssh"
+      loop: "{{ molecule_platforms }}"
+
+    - name: Create instance config
+      when: server.changed | default(false) | bool
+      block:
+        - name: Populate instance config dict
+          ansible.builtin.set_fact:
+            instance_conf_dict:
+              instance: "{{ item.container.Name | regex_replace('^/', '') }}"
+              address: "127.0.0.1"
+              port: "2222"
+              user: "{{ test_user }}"
+              ssh_pass: "{{ test_pass }}"
+          with_items: "{{ server.results }}"
+          register: instance_config_dict
+
+        - name: Convert instance config dict to a list
+          ansible.builtin.set_fact:
+            instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+
+        - name: Dump instance config
+          ansible.builtin.copy:
+            content: |
+              # Molecule managed
+
+              {{ instance_conf | to_json | from_json | to_yaml }}
+            dest: "{{ molecule_instance_config }}"
+            mode: "0600"

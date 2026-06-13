@@ -1,0 +1,52 @@
+---
+- name: Destroy
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  # no_log: "{{ molecule_no_log }}"
+  tasks:
+    # Developer must implement.
+
+    # Mandatory configuration for Molecule to function.
+
+    - name: Populate instance config
+      ansible.builtin.set_fact:
+        instance_conf: {}
+
+    - name: Dump instance config
+      ansible.builtin.copy:
+        content: |
+          # Molecule managed
+
+          {{ instance_conf | to_json | from_json | to_yaml }}
+        dest: "{{ molecule_instance_config }}"
+        mode: "0600"
+      when: server.changed | default(false) | bool  # noqa no-handler
+
+# ---
+# - name: Destroy
+#   hosts: localhost
+#   connection: local
+#   gather_facts: false
+#   tasks:
+#     # 1. Wir lesen die Plattformen aus der molecule.yml aus
+#     - name: Molecule-Plattformen auslesen
+#       ansible.builtin.set_fact:
+#         molecule_platforms: "{{ molecule_yml.platforms }}"
+
+#     # 2. Den Container stoppen und entfernen
+#     - name: Docker Container stoppen und entfernen
+#       community.docker.docker_container:
+#         name: "{{ item.name }}"
+#         state: absent # 'absent' löscht den Container komplett
+#         force_kill: true # Erzwingt das Beenden, falls Systemd blockiert
+#       loop: "{{ molecule_platforms }}"
+#       # Fehler ignorieren, falls der Container manuell schon gelöscht wurde
+#       ignore_errors: true 
+
+#     # 3. Die von Molecule verwaltete SSH-Konfigurationsdatei löschen
+#     - name: Lösche die Molecule Instanz-Konfiguration
+#       ansible.builtin.file:
+#         path: "{{ molecule_instance_config }}"
+#         state: absent
+#       when: molecule_instance_config is defined

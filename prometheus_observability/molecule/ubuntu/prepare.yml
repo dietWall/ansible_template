@@ -1,0 +1,18 @@
+---
+- name: Prepare Container - add SSH
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Install Dependecnies
+      ansible.builtin.apt:
+        name:
+          - openssh-server
+          - time # image does not have time installed, but we are using it in the demo role
+        state: present
+        update_cache: true
+
+    - name: Start SSH-service
+      ansible.builtin.service:
+        name: ssh
+        state: started
+        enabled: true

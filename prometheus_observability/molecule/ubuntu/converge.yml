@@ -1,10 +1,24 @@
 ---
-# Purpose: bring the instance to the desired state by running the role under test.
-# Molecule calls this playbook with `molecule converge`.
-- name: Converge
+- name: Converge - Run Demo Role
   hosts: all
-  gather_facts: true # Disable if your role does not rely on facts
+  gather_facts: true  # Sammelt die Ubuntu-Systemdaten vor dem Rollenstart
+  vars:
+    demo_detailed: "{{ demo_detailed_raw | default('false') | bool }}"
+  pre_tasks:
+    - name: Dump effective Ansible Roles Path
+      ansible.builtin.shell: >-
+        ansible-config dump | grep DEFAULT_ROLES_PATH | sed 's/\\x1b\\[[0-9;]*m//g'
+      args:
+        executable: /bin/bash
+      register: config_dump
+      changed_when: false
+
+    - name: "print internals"
+      ansible.builtin.debug:
+        msg: |
+          "Print demo_detailed:  {{ demo_detailed | default('UNDEFINED') }}"
+          "type of the variable: {{ demo_detailed | type_debug }}"
+          "Print role path: {{ config_dump.stdout }}"
+  roles:
+    - role: demo
   tasks:
-    - name: Apply role under test
-      ansible.builtin.include_role:
-        name: yournamespace.yourcollection.yourrole

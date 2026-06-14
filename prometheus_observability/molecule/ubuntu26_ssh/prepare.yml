@@ -1,0 +1,5 @@
+---
+- name: Prepare Container - add SSH
+  hosts: all
+  gather_facts: true
+  tasks:

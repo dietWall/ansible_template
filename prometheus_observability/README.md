@@ -15,9 +15,11 @@ This project provides a minimal demonstration environment for testing Ansible ro
 
 ## ✨ Features
 
-### Quick Verification with Demo Role
+### Quick Verification with Demo Role and SSH Keys
 
 The **demo role** provides immediate feedback to verify Ansible is working correctly without requiring SSH connectivity to external hosts.
+
+The **ssh_keys role** manages SSH key generation and deployment, demonstrating full SSH workflow integration.
 
 **Run:**
 ```bash
@@ -31,6 +33,7 @@ DEMO_DETAILED=false molecule converge
 - System facts (OS, distribution, architecture)
 - Command output examples (whoami, time, etc.)
 - Conditional task demonstrations
+- SSH key generation and deployment (when ssh_keys role runs)
 
 **Verbose mode:**
 ```bash
@@ -145,11 +148,11 @@ prometheus_observability/
 │   │   ├── converge.yml       # Converge playbook (runs in container)
 │   │   ├── prepare.yml        # Container preparation (SSH, sudo config)
 │   │   └── _create.yml        # Create sequence (reference file)
-│   └── ubuntu26_ssh/          # Future: SSH verification scenario
+│   └── ubuntu26_ssh/          # Working: SSH verification scenario (native Ansible, not Docker)
 ├── roles/
 │   ├── demo/                 # Demo role for quick verification
 │   ├── ssh_verify/          # Future: SSH verification role (not working yet)
-│   └── ssh_keys/            # Future: SSH key management role (not working yet)
+│   └── ssh_keys/            # Working: SSH key management role
 ├── group_vars/              # Shared variables
 ├── site.yml                 # Site-level playbook (SSH demo, future work)
 ├── molecule.yml            # Global Molecule config

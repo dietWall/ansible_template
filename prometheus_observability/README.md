@@ -273,14 +273,71 @@ The `molecule.yml` files define:
 - **verifier:** Ansible-based verification
 - **scenarios:** default (localhost) and ubuntu (Docker)
 
+## 🐍 Automated Scenario Runner
+
+Use the `run_molecule_scenarios.py` script for automated execution:
+
+```bash
+# Run all scenarios in correct order
+python run_molecule_scenarios.py
+
+# Or run with verbose output
+export DEMO_DETAILED=true
+python run_molecule_scenarios.py
+```
+
+**Features:**
+- Runs all scenarios in correct order (default → ubuntu → ubuntu26_ssh)
+- Each scenario: `prepare` → `converge`
+- Stops immediately if any scenario fails
+- Automatic cleanup on failure
+- Docker container verification for SSH testing
+
+**The script uses a command array (`SCENARIO_COMMANDS`) that defines all prepare/converge commands in order:**
+
+```python
+SCENARIO_COMMANDS = [
+    # default scenario
+    ("molecule syntax -s default", "Syntax check"),
+    ("molecule create -s default", "Create"),
+    ("molecule prepare -s default", "Prepare"),
+    ("molecule converge -s default", "Converge"),
+
+    # ubuntu scenario
+    ("molecule create -s ubuntu", "Create container"),
+    ("molecule prepare -s ubuntu", "Prepare container"),
+    ("molecule converge -s ubuntu", "Converge"),
+
+    # ubuntu26_ssh scenario
+    ("molecule prepare -s ubuntu26_ssh", "Prepare via SSH"),
+    ("molecule converge -s ubuntu26_ssh", "Converge via SSH"),
+]
+```
+
+### Target Details
+
+- **default scenario:** Runs on your host with `driver: default` (no Docker)
+- **ubuntu scenario:** Prepares Docker container with `driver: docker` - container cached as `ubuntu26-sandbox`
+- **ubuntu26_ssh scenario:** Uses cached container via SSH with `driver: default` (native Ansible)
+- **DEMO_DETAILED:** Set to `true` for verbose output, `false` for minimal output
+- **cgroupns_mode:** Set to `host` for systemd compatibility
+- **Volume mount:** `/sys/fs/cgroup:/sys/fs/cgroup:rw` required for systemd
+- **Molecule v6:** Uses native Ansible architecture with separate `hosts.yml` inventory
+- **roles_path:** Ansible reads roles from `./roles` directory (defined in `ansible.cfg`)
+
 ## ⚠️ Important Notes
 
 ### Workflow Order
 
-**Run scenarios in this order:**
+**Manual execution - Run scenarios in this order:**
 1. `molecule prepare -s default` + `molecule converge -s default` (localhost tests)
 2. `molecule prepare -s ubuntu` + `molecule converge -s ubuntu` (prepares Docker container)
 3. `molecule prepare -s ubuntu26_ssh` + `molecule converge -s ubuntu26_ssh` (tests roles via SSH)
+
+**Using the automated script:**
+```bash
+python run_molecule_scenarios.py  # Runs all in order, stops on failure
+```
 
 ### Target Details
 
@@ -300,7 +357,9 @@ The following items are planned for future development:
 1. **ssh_verify:** SSH connectivity verification commands (placeholder role)
 2. **site.yml:** Site-level playbook combining multiple roles (demo, ssh_keys)
 3. **Prometheus integration:** Metrics collection and visualization for monitored services
+4. **Parallel execution:** Run independent scenarios in parallel where possible
 
 **Current status:**
 - `ssh_keys` role is fully functional and handles SSH key generation/deployment
 - Both `ssh_keys` and `ssh_verify` roles are tested via the `ubuntu26_ssh` scenario
+- Automated scenario runner (`run_molecule_scenarios.py`) is fully functional

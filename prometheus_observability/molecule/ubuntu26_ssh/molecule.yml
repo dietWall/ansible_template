@@ -1,66 +1,29 @@
 ---
-# Dependency management (download roles/collections)
+# molecule/ubuntu26_ssh/molecule.yml
 dependency:
   name: galaxy
   enabled: false
-
 driver:
   name: default
+ansible:
+  executor:
+    backend: ansible-playbook
+    args:
+      ansible_playbook:
+        # Key fix: Enforces native Ansible inventory handling and bypasses molecule.yml overrides
+        - --inventory=hosts.yml
+        # defines the all.yml, where the ssh key file is defined
+        - --extra-vars=@${MOLECULE_PROJECT_DIRECTORY}/group_vars/all/all.yml
+        # defines the path to the password file.
+        # @ : defines a path for ansible, otherwise it would be a k:v
+        - --extra-vars=@${MOLECULE_PROJECT_DIRECTORY}/group_vars/all/test_setup_vault.yml
+  env:
+    ANSIBLE_CALLBACK_RESULT_FORMAT: yaml
+    ANSIBLE_DISPLAY_FAILED_STDERR: 'true'
+    ANSIBLE_INTERPRETER_PYTHON: auto_silent
+    ANSIBLE_REMOTE_TMP: /tmp
+    ANSIBLE_CONFIG: "${MOLECULE_PROJECT_DIRECTORY}/ansible.cfg"
+    ANSIBLE_VAULT_PASSWORD_FILE: "${MOLECULE_PROJECT_DIRECTORY}/../.vault_pass"
+
 platforms:
   - name: ubuntu26-sandbox
-    image: geerlingguy/docker-ubuntu2604-ansible:latest
-
-    # FIX: Bypasses argument validation bugs between modern Ansible-Core and
-    # the Molecule-Docker plugin's internal build-playbook. Tells Molecule
-    # that the image is ready to download and does not need local rebuilding.
-    pre_build_image: true
-
-    command: /lib/systemd/systemd
-    privileged: true
-
-    # FIX: systemd inside the container requires direct write access to the host's
-    # control groups (cgroups) to manage services. This bind-mount exposes the
-    # virtual cgroup filesystem from the host into the container so systemd
-    # does not crash with Exit Code 255 during bootup.
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-
-    cgroupns_mode: host
-    # Opens the SSH port to the host system for later manual testing
-    published_ports:
-      - 0.0.0.0:2222:22/tcp
-    # Forces Molecule to communicate internally via Docker API instead of SSH
-    connection: docker
-
-    # deactivates warnings about python interpreter might change
-    ansible_python_interpreter: auto_silent
-
-provisioner:
-  name: ansible
-  env:
-    # Forces Ansible to use /tmp directory instead of the root user's home folder
-    ANSIBLE_REMOTE_TMP: /tmp
-    # CLEAN COMPACT FIX: This single line is enough to kill the python warning
-    ANSIBLE_INTERPRETER_PYTHON: auto_silent
-    ANSIBLE_CALLBACK_RESULT_FORMAT: "yaml"
-    ANSIBLE_DISPLAY_FAILED_STDERR: "true"
-    # Forces Molecule/Ansible to use the centralized ansible.cfg
-    # instead of the auto-generated file inside the temporary cache folder.
-    ANSIBLE_CONFIG: "$MOLECULE_PROJECT_DIRECTORY/ansible.cfg"
-  playbooks:
-    prepare: prepare.yml
-    converge: converge.yml
-  inventory:
-    host_vars:
-      ubuntu26-sandbox:
-        ansible_host: 127.0.0.1
-        ansible_port: 2222
-        ansible_user: ubuntu
-        ansible_password: "ansible"
-        ansible_connection: ssh
-        # Keep this here as you discovered it's required to silence the warning
-        ansible_python_interpreter: auto_silent
-        # required so keys are not offended at subsequent testruns:
-        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
-verifier:
-  name: ansible

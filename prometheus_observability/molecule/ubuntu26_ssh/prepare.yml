@@ -2,4 +2,20 @@
 - name: Prepare Container - add SSH
   hosts: all
   gather_facts: true
+
   tasks:
+    - name: "Zeige alle verfügbaren Host-Variablen an"
+      ansible.builtin.debug:
+        var: hostvars[inventory_hostname]
+
+    - name: "Test-Ping ausführen (ohne volles Fact Gathering)"
+      ansible.builtin.ping:
+
+    - name: Verify if password exists
+      ansible.builtin.debug:
+        msg: >
+          {% if vault_ubuntu_password is defined and vault_ubuntu_password | length > 0 %}
+          Password loaded and available
+          {% else %}
+          WARNING: Password is missing or empty!
+          {% endif %}

@@ -2,7 +2,26 @@
 - name: Prepare Container - add SSH and configure user
   hosts: all
   gather_facts: true
+  
+  # here we use the vault_password for user configuration,
+  # there is no need to define the vault in the molecule.yml 
+  # as its only required for some tasks inside her - 
+  # in ubuntu26_ssh its different, we need the password throughout all playbooks
+  # there are options to make it more locally - inside tasks 
+  # but the maintanence effort is too high, just keep it here
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/test_setup_vault.yml"
   tasks:
+
+    - name: Verify if password exists
+      ansible.builtin.debug:
+        msg: >
+          {% if vault_ubuntu_password is defined and vault_ubuntu_password | length > 0 %}
+          Password loaded and available
+          {% else %}
+          WARNING: Password is missing or empty!
+          {% endif %}
+
     - name: Install OpenSSH Server and testing utilities
       ansible.builtin.apt:
         name:
@@ -22,11 +41,8 @@
     - name: Set temporary password for the existing ubuntu user
       ansible.builtin.user:
         name: ubuntu
-        # Password is 'ansible' (hashed using SHA-512)
-        password: "{{ 'ansible' | ansible.builtin.password_hash('sha512') }}"
-        # "$6$rounds=656000$hNleW7CqJzZp$vB0E4j/S0k6tL807r9LgB9.5C6A3dF1FfQyXnLgqRmW/m8M7pC4Q0h9vXW5bF8I7ZgW2s5L3bL3bL3bL3bL3bZ."
-        # "$6$rounds=656000$hNleW7CqJzZp$vB0E4j/S0k6tL807r9LgB9.5C6A3dF1FfQyXnLgqRmW/m8M7pC4Q0h9vXW5bF8I7ZgW2s5L3bL3bL3bL3bL3b."
-                  
+        password: "{{ vault_ubuntu_password | ansible.builtin.password_hash('sha512') }}"
+
     - name: Ensure ubuntu user has passwordless sudo privileges
       ansible.builtin.lineinfile:
         path: /etc/sudoers.d/ubuntu

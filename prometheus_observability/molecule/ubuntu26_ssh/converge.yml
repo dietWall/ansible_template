@@ -1,10 +1,20 @@
 ---
 - name: Converge - Run Demo Role
   hosts: all
-  gather_facts: true  # Sammelt die Ubuntu-Systemdaten vor dem Rollenstart
+  gather_facts: false  # Sammelt die Ubuntu-Systemdaten vor dem Rollenstart
   vars:
     demo_detailed: "{{ demo_detailed_raw | default('false') | bool }}"
+  # vault is defined in molecule.yml -> no need to have it here
   pre_tasks:
+    - name: Verify if password exists
+      ansible.builtin.debug:
+        msg: >
+          {% if vault_ubuntu_password is defined and vault_ubuntu_password | length > 0 %}
+          Password loaded and available
+          {% else %}
+          WARNING: Password is missing or empty!
+          {% endif %}
+
     - name: Dump effective Ansible Roles Path
       ansible.builtin.shell: >-
         ansible-config dump | grep DEFAULT_ROLES_PATH | sed 's/\\x1b\\[[0-9;]*m//g'
@@ -21,4 +31,5 @@
           "Print role path: {{ config_dump.stdout }}"
   roles:
     - role: demo
+    - role: ssh_keys
   tasks:

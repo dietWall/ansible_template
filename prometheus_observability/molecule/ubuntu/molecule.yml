@@ -60,6 +60,7 @@ provisioner:
     ANSIBLE_CONFIG: "$MOLECULE_PROJECT_DIRECTORY/ansible.cfg"
     # FIX: Silences the dynamic interpreter discovery warnings across ALL execution phases
     ANSIBLE_INTERPRETER_PYTHON: auto_silent
+    ANSIBLE_VAULT_PASSWORD_FILE: "${MOLECULE_PROJECT_DIRECTORY}/../.vault_pass"
   inventory:
     host_vars:
       ubuntu26-sandbox:

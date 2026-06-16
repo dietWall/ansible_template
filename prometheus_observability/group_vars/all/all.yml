@@ -1,0 +1,4 @@
+---
+# group_vars/all/vars.yml
+# Resolves to ~/.ssh/id_ed25519.pub or id_rsa.pub on your local computer
+ssh_public_key_path: "~/.ssh/local_net_key.pub"

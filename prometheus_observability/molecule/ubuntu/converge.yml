@@ -4,6 +4,9 @@
   gather_facts: true  # Sammelt die Ubuntu-Systemdaten vor dem Rollenstart
   vars:
     demo_detailed: "{{ demo_detailed_raw | default('false') | bool }}"
+  # no need to use vaults here - we are using root and docker driver
+  # this is without password authentification
+  
   pre_tasks:
     - name: Dump effective Ansible Roles Path
       ansible.builtin.shell: >-

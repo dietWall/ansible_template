@@ -2,29 +2,30 @@
 
 ## 🎯 Goals
 
-This project provides a minimal demonstration environment for testing Ansible roles using Molecule, with Docker-based sandboxing for Ubuntu 26.04.
+This project provides a Docker-based sandboxing environment for testing Ansible roles with Molecule, using Ubuntu 26.04 as the target OS.
 
 **Core Objectives:**
-- Demonstrate Ansible role structure and Molecule workflow
-- Provide a reusable demo role for quick verification
-- Showcase Molecule scenarios (localhost and Docker container)
-- Foundation for future Docker, Prometheus, and service integrations
-- Support both localhost and Docker container test scenarios
+- Demonstrate Molecule's two-stage workflow (container preparation + role testing)
+- Showcase native Ansible inventory handling (Molecule v6 compatibility)
+- Provide reusable `demo` role for quick verification without external SSH
+- Demonstrate SSH-based role testing via cached Docker containers
+- Serve as foundation for future Prometheus and service integrations
+- Support full SSH workflow with `ssh_keys` role for key generation/deployment
 
-> **Note:** The `ssh_verify` and `ssh_keys` roles are included as a demonstration for future implementation. They are not yet functional and should not be relied upon for production use. They will be developed in a separate project based on this foundation.
+> **Note:** The `ssh_verify` role is a placeholder for future implementation. The `ssh_keys` role is fully functional and handles SSH key generation and deployment. Both roles are tested via the `ubuntu26_ssh` scenario which connects to a cached Docker container.
 
 ## ✨ Features
 
 ### Quick Verification with Demo Role and SSH Keys
 
-The **demo role** provides immediate feedback to verify Ansible is working correctly without requiring SSH connectivity to external hosts.
+The **demo role** provides immediate feedback to verify Ansible is working correctly.
 
-The **ssh_keys role** manages SSH key generation and deployment, demonstrating full SSH workflow integration.
+The **ssh_keys role** manages SSH key generation and deployment.
 
-**Run:**
+**Run converge on localhost:**
 ```bash
 cd prometheus_observability
-DEMO_DETAILED=false molecule converge
+DEMO_DETAILED=false molecule converge --targets localhost
 ```
 
 **Output includes:**
@@ -37,7 +38,7 @@ DEMO_DETAILED=false molecule converge
 
 **Verbose mode:**
 ```bash
-DEMO_DETAILED=true molecule converge
+DEMO_DETAILED=true molecule converge --targets localhost
 ```
 
 ### 1. Prerequisites
@@ -64,18 +65,18 @@ ansible-galaxy install -r requirements.yml
 ### 3. Run Tests
 
 ```bash
-# Run on localhost (current demo setup)
-DEMO_DETAILED=false molecule converge --targets localhost
+# Stage 1: Prepare the Docker container (runs once, then cached)
+molecule converge --targets ubuntu
 
-# Run on Docker container (demo role in container)
-DEMO_DETAILED=false molecule converge --targets ubuntu
+# Stage 2: Test roles via SSH to the cached container
+DEMO_DETAILED=false molecule converge --targets ubuntu26_ssh
 
 # Run all tests
 molecule test
 
-# Run specific targets
-molecule test --targets localhost
-molecule test --targets ubuntu
+# Run specific scenarios
+molecule test --targets ubuntu    # Prepare container
+molecule test --targets ubuntu26_ssh  # Test roles
 ```
 
 ### 4. Individual Commands
@@ -99,13 +100,31 @@ molecule destroy
 
 ## 🐳 Docker Container Setup
 
-The `ubuntu` scenario runs the demo role inside a Docker container based on Ubuntu 26.04 with systemd support.
+### Two-Stage Workflow
+
+The project uses a two-stage Docker workflow:
+
+**Stage 1: `ubuntu` scenario - Container Preparation**
+- Runs in Docker with driver: `docker`
+- Prepares the container by installing SSH server, time, and sudo utilities
+- Configures the `ubuntu` user with passwordless sudo
+- Enables password authentication in SSH
+- Starts the SSH service on port 2222
+- The container is then cached by Molecule for reuse
+
+**Stage 2: `ubuntu26_ssh` scenario - Role Testing with SSH Access**
+- Runs on your host with driver: `default` (native Ansible)
+- Connects to the **same cached container** (`ubuntu26-sandbox`) via SSH
+- Uses the container's SSH server to run and verify roles from `roles/` directory
+- Reads host definitions from `hosts.yml` (bypasses Molecule's restrictive cache)
+- Uses vault password from `.vault_pass` for SSH authentication
+- Runs converge playbook: `demo` + `ssh_keys` roles
 
 ### Container Configuration
 
 - **Image:** `geerlingguy/docker-ubuntu2604-ansible:latest`
 - **Systemd:** Enabled with PID 1
-- **SSH:** Available on port 2222
+- **SSH:** Available on port 2222 (configured in Stage 1)
 - **cgroups:** Host cgroup filesystem mounted for systemd compatibility
 
 ### Required System Setup
@@ -121,18 +140,19 @@ mount --rbind /sys/fs/cgroup /sys/fs/cgroup
 ### Environment Variables
 
 | Variable | Description | Default |
-|----------|-------------|---------|
-| `DEMO_DETAILED` | Enable detailed demo output | `false` |
+|---------|-------------|---------|
+| `DEMO_DETAILED` | Enable detailed demo output in `demo` role | `false` |
+| `MOLECULE_EPHEMERAL_DIRECTORY` | Molecule's ephemeral cache directory (where cached containers live) | auto |
 
 **Usage examples:**
 ```bash
 # Show detailed facts and output
 export DEMO_DETAILED=true
-molecule converge --targets ubuntu
+molecule converge --targets ubuntu26_ssh
 
 # Disable detailed output (faster)
 export DEMO_DETAILED=false
-molecule converge --targets ubuntu
+molecule converge --targets ubuntu26_ssh
 ```
 
 ## 📁 Project Structure
@@ -140,42 +160,51 @@ molecule converge --targets ubuntu
 ```
 prometheus_observability/
 ├── molecule/
-│   ├── default/               # Localhost scenario
-│   │   ├── molecule.yml       # Localhost-only config
-│   │   └── converge.yml       # Converge playbook (localhost)
-│   ├── ubuntu/                # Docker scenario
-│   │   ├── molecule.yml       # Docker container config
-│   │   ├── converge.yml       # Converge playbook (runs in container)
-│   │   ├── prepare.yml        # Container preparation (SSH, sudo config)
-│   │   └── _create.yml        # Create sequence (reference file)
-│   └── ubuntu26_ssh/          # Working: SSH verification scenario (native Ansible, not Docker)
+│   ├── default/                           # Localhost scenario (quick tests)
+│   │   ├── molecule.yml                   # Localhost-only config
+│   │   └── converge.yml                   # Converge playbook (localhost)
+│   ├── ubuntu/                            # Docker container PREPARATION
+│   │   ├── molecule.yml                   # Docker container config (prepares container)
+│   │   ├── converge.yml                   # Initial converge playbook (cached)
+│   │   ├── prepare.yml                    # Container preparation (SSH, sudo config)
+│   │   └── _create.yml                    # Create sequence
+│   └── ubuntu26_ssh/                      # Role testing scenario (uses cached container)
+│       ├── molecule.yml                   # Native Ansible config (driver: default)
+│       ├── converge.yml                   # Role converge (demo + ssh_keys)
+│       └── hosts.yml                      # Host definitions (SSH config, port 2222)
 ├── roles/
-│   ├── demo/                 # Demo role for quick verification
-│   ├── ssh_verify/          # Future: SSH verification role (not working yet)
-│   └── ssh_keys/            # Working: SSH key management role
-├── group_vars/              # Shared variables
-├── site.yml                 # Site-level playbook (SSH demo, future work)
-├── molecule.yml            # Global Molecule config
-├── ansible.cfg             # Ansible configuration
-└── README.md               # This file
+│   ├── demo/                              # Demo role (runs in container)
+│   ├── ssh_verify/                        # Future: SSH verification role
+│   └── ssh_keys/                         # Working: SSH key management role
+├── group_vars/                            # Shared variables
+├── site.yml                               # Site-level playbook
+├── molecule.yml                          # Global Molecule config
+├── ansible.cfg                           # Ansible configuration
+└── README.md
 ```
 
 ## 🔍 What Gets Tested
 
 ### localhost target
-- Demo role execution
+- Demo role execution on host machine
 - System facts gathering
 - Ansible capabilities verification
 - Conditional task demonstrations
 - Command output examples
 
-### ubuntu target (Docker container)
-- Demo role execution inside container
-- Container creation with systemd
-- SSH service setup on port 2222
-- Passwordless sudo configuration
-- cgroup namespace sharing with host
-- Idempotence verification
+### ubuntu target (Docker container - preparation stage)
+- Container creation with systemd and cgroups
+- SSH server installation and configuration
+- Ubuntu user setup with passwordless sudo
+- Creates cached container: `ubuntu26-sandbox`
+
+### ubuntu26_ssh target (role testing stage)
+- **Uses the SAME cached container** from ubuntu target via SSH
+- Connects to container's SSH server on port 2222
+- Runs converge playbook with `demo` and `ssh_keys` roles
+- Validates role idempotence and output
+- Demonstrates native Ansible inventory handling (hosts.yml)
+- Tests roles from `roles/` directory in cached container
 
 ## 📝 Configuration
 
@@ -199,18 +228,24 @@ The `molecule.yml` files define:
 
 ## ⚠️ Important Notes
 
-- **localhost target:** Runs on your host machine for quick iteration
-- **ubuntu target:** Runs in a Docker container for full testing
+- **localhost target:** Runs on your host machine with driver: `default` for quick iteration
+- **ubuntu target:** Prepares Docker container with driver: `docker` (installation, SSH, sudo) - container is cached as `ubuntu26-sandbox`
+- **ubuntu26_ssh target:** Uses cached container for role testing with SSH access via driver: `default`
 - **DEMO_DETAILED:** Set to `true` for verbose output, `false` for minimal output
 - **cgroupns_mode:** Set to `host` for systemd compatibility
 - **Volume mount:** `/sys/fs/cgroup:/sys/fs/cgroup:rw` required for systemd
+- **Molecule v6:** Uses native Ansible architecture with separate `hosts.yml` inventory
+- **Container caching:** The `ubuntu` scenario caches the container; `ubuntu26_ssh` reuses it
+- **roles_path:** Ansible reads roles from `./roles` directory (defined in `ansible.cfg` and molecule env vars)
 
 ## 🔜 Future Work
 
-The following roles are placeholders for future development:
+The following items are planned for future development:
 
-1. **ssh_verify:** SSH connectivity verification commands
-2. **ssh_keys:** SSH key generation and management
-3. **site.yml:** Site-level playbook combining multiple roles
+1. **ssh_verify:** SSH connectivity verification commands (placeholder role)
+2. **site.yml:** Site-level playbook combining multiple roles (demo, ssh_keys)
+3. **Prometheus integration:** Metrics collection and visualization for monitored services
 
-These are currently not functional and are included as demonstration structures for future implementation.
+**Current status:**
+- `ssh_keys` role is fully functional and handles SSH key generation/deployment
+- Both `ssh_keys` and `ssh_verify` roles are tested via the `ubuntu26_ssh` scenario
